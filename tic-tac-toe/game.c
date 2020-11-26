@@ -3,13 +3,20 @@
 
 struct gameBoardCell 
 {
-	int position;
+	int positionHeight;
+	int positionWidth;
 	char character;
-}inputValue();
+}
+inputValue();
+
+const int WINLENGTH = 3;
+const int HEIGHT = 3;
+const int WIDTH = 3;
 
 void run();
-void Display(char[9]);
-int checkBoard(char[9], char, int);
+void Display(char**);
+int checkBoard(char**, char, int);
+char **initializeBoard();
 
 int main() 
 {
@@ -32,63 +39,97 @@ int main()
 
 void run() 
 {
-	//TODO: rework and rename symbols to be a 2d array and call it board or something
-
-	int count = 0;
-	struct gameBoardCell info;
-	char symbols[9] = {'1','2','3','4','5','6','7','8','9'};
-	Display(symbols);
+	int turnCount = 0;
+	struct gameBoardCell cellInfo;
+	char **board = initializeBoard();
+	Display(board);
 	
 	nextTurn:
-	info = inputValue(symbols, count);
-	symbols[info.position] = info.character;
+	cellInfo = inputValue(board, turnCount);
+	board[cellInfo.positionHeight][cellInfo.positionWidth] = cellInfo.character;
 	system("cls");
-	Display(symbols);
-	if(checkBoard(symbols, info.character, count)==1);
+	Display(board);
+	if(checkBoard(board, cellInfo.character, turnCount)==1)
+	{
+		// free board memory
+		for(int i = 0; i < HEIGHT; i++)
+		{
+			free(board[i]);
+		}
+		free(board);
+	}
 	else
 	{
-		count++;
+		turnCount++;
 		goto nextTurn;
 	}
 }
 
-int checkBoard(char symbols[9], char input, int count)
+char **initializeBoard()
 {
-	// TODO: rework checkBoard into one effecitent loop
-
-	// Rows
-	for (int i = 0; i < 3; i++)
+	int currentNumber = 1;
+	char **board = malloc(sizeof(char*) * HEIGHT); 
+	for(int i = 0; i < HEIGHT; i++) 
 	{
-		if (symbols[i] == input && symbols[i + 1] == input && symbols[i + 2] == input)
+		board[i] = malloc(sizeof(char*) * WIDTH);
+	}
+
+	for(int i = 0; i < HEIGHT; i++)
+	{
+		for(int j = 0; j < WIDTH; j++)
 		{
-			printf("%c WINS!!!", input);
-			return 1;
+			char currentNumberAsChar = currentNumber + '0';
+			board[i][j] = currentNumberAsChar;
+			currentNumber++;
 		}
 	}
+
+	return board;
+}
+
+int checkBoard(char **board, char input, int turnCount)
+{
+	// TODO: rework checkBoard into one effecitent loop
+	int i,j;
 	
-	// Columns
-	for (int i = 0; i < 3; i++)
-	{	
-		if (symbols[i] == input && symbols[i + 3] == input && symbols[i + 6] == input)
+	for (i = 0; i < HEIGHT; i++)
+	{
+		int rowCounter = 0;
+		int columnCounter = 0;
+		for (j = 0; j < WIDTH; j++)
+		{
+			if (board[i][j] == input)
+			{
+				rowCounter++;
+			}
+			if (board[j][i] == input)
+			{
+				columnCounter++;
+			}
+		}
+
+		if (rowCounter == WINLENGTH || columnCounter == WINLENGTH)
 		{
 			printf("%c WINS!!!", input);
-			return 1;
+		        return 1;
 		}
 	}
 
 	// Diaglonals
-	if (symbols[0] == input && symbols[4] == input && symbols[8] == input)
+	// TODO: set these checks in a loop to check regardless of size
+	// see if its possible to incorporate into the loop above (likely is)
+	if (board[0][0] == input && board[1][1] == input && board[2][2] == input)
 	{
 		printf("%c WINS!!!", input);
 		return 1;
 	}
-	else if (symbols[2] == input && symbols[4] == input && symbols[6] == input)
+	else if (board[0][2] == input && board[1][1] == input && board[2][0] == input)
 	{		
 		printf("%c WINS!!!", input);
 		return 1;
 	}
 	// Check draw
-	else if (count == 8) // replace 8 with board size or max turn variable
+	else if (turnCount == WIDTH * HEIGHT - 1)
 	{
 		printf("DRAW GAME");
 		return 1;
@@ -98,14 +139,14 @@ int checkBoard(char symbols[9], char input, int count)
 }
 
 // take input
-struct gameBoardCell inputValue(char symbols[9], int count)
+struct gameBoardCell inputValue(char **board, int turnCount)
 {
-	int i;
+	int i, j;
 	char value;
-	struct gameBoardCell info;
+	struct gameBoardCell cellInfo;
 	
 	inputAgain:
-	if (count%2 == 0)
+	if (turnCount%2 == 0)
 	{
 		printf("\nEnter your choice X:");
 	} 
@@ -114,48 +155,52 @@ struct gameBoardCell inputValue(char symbols[9], int count)
 		printf("\nEnter your choice O:");
 	}
 
-	scanf("%s", &value);
+	scanf("%s", &value); 
 
-	for (i = 0; i < 9; i++)
+	for(i = 0; i < HEIGHT; i++)
 	{
-		if (value==symbols[i])
+		for(j = 0; j < WIDTH; j++)
 		{
-			info.position = i;
-			if (count%2 == 0)
+			if(value == board[i][j])
 			{
-				info.character = 'X';
-			}	
+				cellInfo.positionHeight = i;
+				cellInfo.positionWidth = j;
+				if(turnCount%2 == 0)
+				{
+					cellInfo.character = 'X';
+				}
+				else
+				{
+					cellInfo.character = 'O';
+				}
+				return cellInfo;
+			}
 			else
 			{
-				info.character = 'O';
+				cellInfo.positionHeight = -1;
+				cellInfo.positionWidth = -1;
+				cellInfo.character = ' ';
 			}
-			break;
-		}
-		else
-		{
-			info.position = -1;
-			info.character = ' ';
 		}
 	}
-	if (info.position == -1)
+	if(cellInfo.positionHeight == -1)
 	{
 		printf("\nInput is not valid");
-
-		goto inputAgain;
+	        goto inputAgain;
 	}
-	return info;
+	return cellInfo;
 }
 
 
-void Display(char symbols[9]) 
+void Display(char **board) 
 {
-	printf("\t\t\tT i c   t a c   t o e\n");
+	printf("\t\t\tTIC    TAC    TOE\n");
 	printf( "\n\t\t\t     |     |     ");
-	printf("\n\t\t\t  %c  |  %c  |  %c  ",symbols[0],symbols[1],symbols[2]);
+	printf("\n\t\t\t  %c  |  %c  |  %c  ",board[0][0],board[0][1],board[0][2]);
 	printf( "\n\t\t\t-----|-----|-----");
-	printf("\n\t\t\t  %c  |  %c  |  %c  ",symbols[3],symbols[4],symbols[5]);
+	printf("\n\t\t\t  %c  |  %c  |  %c  ",board[1][0],board[1][1],board[1][2]);
         printf( "\n\t\t\t-----|-----|-----");	
-	printf("\n\t\t\t  %c  |  %c  |  %c  ",symbols[6],symbols[7],symbols[8]);
+	printf("\n\t\t\t  %c  |  %c  |  %c  ",board[2][0],board[2][1],board[2][2]);
 	printf( "\n\t\t\t     |     |     \n");
 	printf("Player 1 Symbol: X\n");
 	printf("Player 2 Symbol: O\n");
